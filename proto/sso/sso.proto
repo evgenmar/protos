@@ -68,8 +68,8 @@ message CheckPermissionResponse {
 
 message AssignPermissionRequest {
   int64 user_id = 1; // User ID for assinging permission.
-  int32 app_id = 3; // App ID for assinging permission.
-  int32 permission = 2; // Permission that should be assigned.
+  int32 app_id = 2; // App ID for assinging permission.
+  int32 permission = 3; // Permission that should be assigned.
 }
 
 message AssignPermissionResponse {
@@ -78,8 +78,8 @@ message AssignPermissionResponse {
 
 message RemovePermissionRequest {
   int64 user_id = 1; // User ID for removing permission.
-  int32 app_id = 3; // App ID for removing permission.
-  int32 permission = 2; // Permission that should be removed.
+  int32 app_id = 2; // App ID for removing permission.
+  int32 permission = 3; // Permission that should be removed.
 }
 
 message RemovePermissionResponse {
