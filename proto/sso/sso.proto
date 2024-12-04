@@ -58,18 +58,15 @@ message LogoutResponse {
 }
 
 message CheckPermissionRequest {
-  string token = 1; // Auth token of user.
-  int32 permission = 2; // Permission to validate.
+  Permission permission = 1; // Permission that should be checked.
 }
 
 message CheckPermissionResponse {
-  bool has_permission = 1;  // Indicates whether the user have permission specified in CheckPermissionRequest.
+  bool is_valid = 1;  // Indicates whether permission is valid.
 }
 
 message AssignPermissionRequest {
-  int64 user_id = 1; // User ID for assinging permission.
-  int32 app_id = 2; // App ID for assinging permission.
-  int32 permission = 3; // Permission that should be assigned.
+  Permission permission = 1; // Permission that should be assigned.
 }
 
 message AssignPermissionResponse {
@@ -77,11 +74,15 @@ message AssignPermissionResponse {
 }
 
 message RemovePermissionRequest {
-  int64 user_id = 1; // User ID for removing permission.
-  int32 app_id = 2; // App ID for removing permission.
-  int32 permission = 3; // Permission that should be removed.
+  Permission permission = 1; // Permission that should be removed.
 }
 
 message RemovePermissionResponse {
   bool success = 1; // Indicates whether removing permission was successful.
+}
+
+message Permission {
+  int64 user_id = 1;
+  int32 app_id = 2; 
+  int32 permission = 3;
 }
