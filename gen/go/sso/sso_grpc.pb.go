@@ -21,7 +21,6 @@ const _ = grpc.SupportPackageIsVersion9
 const (
 	Auth_Register_FullMethodName = "/auth.Auth/Register"
 	Auth_Login_FullMethodName    = "/auth.Auth/Login"
-	Auth_IsAdmin_FullMethodName  = "/auth.Auth/IsAdmin"
 	Auth_Logout_FullMethodName   = "/auth.Auth/Logout"
 )
 
@@ -29,14 +28,13 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 //
-// Auth is service for managing permissions and roles.
+// Auth is service for managing authentification.
 type AuthClient interface {
 	// Register registers a new user.
 	Register(ctx context.Context, in *RegisterRequest, opts ...grpc.CallOption) (*RegisterResponse, error)
 	// Login logs in a user and returns an auth token.
 	Login(ctx context.Context, in *LoginRequest, opts ...grpc.CallOption) (*LoginResponse, error)
-	// IsAdmin checks whether a user is an admin.
-	IsAdmin(ctx context.Context, in *IsAdminRequest, opts ...grpc.CallOption) (*IsAdminResponse, error)
+	// Logout logs out a user.
 	Logout(ctx context.Context, in *LogoutRequest, opts ...grpc.CallOption) (*LogoutResponse, error)
 }
 
@@ -68,16 +66,6 @@ func (c *authClient) Login(ctx context.Context, in *LoginRequest, opts ...grpc.C
 	return out, nil
 }
 
-func (c *authClient) IsAdmin(ctx context.Context, in *IsAdminRequest, opts ...grpc.CallOption) (*IsAdminResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(IsAdminResponse)
-	err := c.cc.Invoke(ctx, Auth_IsAdmin_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 func (c *authClient) Logout(ctx context.Context, in *LogoutRequest, opts ...grpc.CallOption) (*LogoutResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(LogoutResponse)
@@ -92,14 +80,13 @@ func (c *authClient) Logout(ctx context.Context, in *LogoutRequest, opts ...grpc
 // All implementations must embed UnimplementedAuthServer
 // for forward compatibility.
 //
-// Auth is service for managing permissions and roles.
+// Auth is service for managing authentification.
 type AuthServer interface {
 	// Register registers a new user.
 	Register(context.Context, *RegisterRequest) (*RegisterResponse, error)
 	// Login logs in a user and returns an auth token.
 	Login(context.Context, *LoginRequest) (*LoginResponse, error)
-	// IsAdmin checks whether a user is an admin.
-	IsAdmin(context.Context, *IsAdminRequest) (*IsAdminResponse, error)
+	// Logout logs out a user.
 	Logout(context.Context, *LogoutRequest) (*LogoutResponse, error)
 	mustEmbedUnimplementedAuthServer()
 }
@@ -116,9 +103,6 @@ func (UnimplementedAuthServer) Register(context.Context, *RegisterRequest) (*Reg
 }
 func (UnimplementedAuthServer) Login(context.Context, *LoginRequest) (*LoginResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Login not implemented")
-}
-func (UnimplementedAuthServer) IsAdmin(context.Context, *IsAdminRequest) (*IsAdminResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method IsAdmin not implemented")
 }
 func (UnimplementedAuthServer) Logout(context.Context, *LogoutRequest) (*LogoutResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Logout not implemented")
@@ -180,24 +164,6 @@ func _Auth_Login_Handler(srv interface{}, ctx context.Context, dec func(interfac
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Auth_IsAdmin_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(IsAdminRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(AuthServer).IsAdmin(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: Auth_IsAdmin_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AuthServer).IsAdmin(ctx, req.(*IsAdminRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 func _Auth_Logout_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(LogoutRequest)
 	if err := dec(in); err != nil {
@@ -232,12 +198,208 @@ var Auth_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _Auth_Login_Handler,
 		},
 		{
-			MethodName: "IsAdmin",
-			Handler:    _Auth_IsAdmin_Handler,
-		},
-		{
 			MethodName: "Logout",
 			Handler:    _Auth_Logout_Handler,
+		},
+	},
+	Streams:  []grpc.StreamDesc{},
+	Metadata: "sso/sso.proto",
+}
+
+const (
+	Permissions_CheckPermission_FullMethodName  = "/auth.Permissions/CheckPermission"
+	Permissions_AssignPermission_FullMethodName = "/auth.Permissions/AssignPermission"
+	Permissions_RemovePermission_FullMethodName = "/auth.Permissions/RemovePermission"
+)
+
+// PermissionsClient is the client API for Permissions service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+//
+// Permissions is service for managing permissions and roles.
+type PermissionsClient interface {
+	// CheckPermission checks permission for a user.
+	CheckPermission(ctx context.Context, in *CheckPermissionRequest, opts ...grpc.CallOption) (*CheckPermissionResponse, error)
+	// AssignPermission assignes permission for a user.
+	//
+	// WARNING! AssignPermission is not protected from unauthorized third-party use.
+	// A simplified implementation within the framework of the educational project is given.
+	AssignPermission(ctx context.Context, in *AssignPermissionRequest, opts ...grpc.CallOption) (*AssignPermissionResponse, error)
+	// RemovePermission removes permission for a user.
+	//
+	// WARNING! RemovePermission is not protected from unauthorized third-party use.
+	// A simplified implementation within the framework of the educational project is given.
+	RemovePermission(ctx context.Context, in *RemovePermissionRequest, opts ...grpc.CallOption) (*RemovePermissionResponse, error)
+}
+
+type permissionsClient struct {
+	cc grpc.ClientConnInterface
+}
+
+func NewPermissionsClient(cc grpc.ClientConnInterface) PermissionsClient {
+	return &permissionsClient{cc}
+}
+
+func (c *permissionsClient) CheckPermission(ctx context.Context, in *CheckPermissionRequest, opts ...grpc.CallOption) (*CheckPermissionResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CheckPermissionResponse)
+	err := c.cc.Invoke(ctx, Permissions_CheckPermission_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *permissionsClient) AssignPermission(ctx context.Context, in *AssignPermissionRequest, opts ...grpc.CallOption) (*AssignPermissionResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AssignPermissionResponse)
+	err := c.cc.Invoke(ctx, Permissions_AssignPermission_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *permissionsClient) RemovePermission(ctx context.Context, in *RemovePermissionRequest, opts ...grpc.CallOption) (*RemovePermissionResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RemovePermissionResponse)
+	err := c.cc.Invoke(ctx, Permissions_RemovePermission_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// PermissionsServer is the server API for Permissions service.
+// All implementations must embed UnimplementedPermissionsServer
+// for forward compatibility.
+//
+// Permissions is service for managing permissions and roles.
+type PermissionsServer interface {
+	// CheckPermission checks permission for a user.
+	CheckPermission(context.Context, *CheckPermissionRequest) (*CheckPermissionResponse, error)
+	// AssignPermission assignes permission for a user.
+	//
+	// WARNING! AssignPermission is not protected from unauthorized third-party use.
+	// A simplified implementation within the framework of the educational project is given.
+	AssignPermission(context.Context, *AssignPermissionRequest) (*AssignPermissionResponse, error)
+	// RemovePermission removes permission for a user.
+	//
+	// WARNING! RemovePermission is not protected from unauthorized third-party use.
+	// A simplified implementation within the framework of the educational project is given.
+	RemovePermission(context.Context, *RemovePermissionRequest) (*RemovePermissionResponse, error)
+	mustEmbedUnimplementedPermissionsServer()
+}
+
+// UnimplementedPermissionsServer must be embedded to have
+// forward compatible implementations.
+//
+// NOTE: this should be embedded by value instead of pointer to avoid a nil
+// pointer dereference when methods are called.
+type UnimplementedPermissionsServer struct{}
+
+func (UnimplementedPermissionsServer) CheckPermission(context.Context, *CheckPermissionRequest) (*CheckPermissionResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CheckPermission not implemented")
+}
+func (UnimplementedPermissionsServer) AssignPermission(context.Context, *AssignPermissionRequest) (*AssignPermissionResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AssignPermission not implemented")
+}
+func (UnimplementedPermissionsServer) RemovePermission(context.Context, *RemovePermissionRequest) (*RemovePermissionResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RemovePermission not implemented")
+}
+func (UnimplementedPermissionsServer) mustEmbedUnimplementedPermissionsServer() {}
+func (UnimplementedPermissionsServer) testEmbeddedByValue()                     {}
+
+// UnsafePermissionsServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to PermissionsServer will
+// result in compilation errors.
+type UnsafePermissionsServer interface {
+	mustEmbedUnimplementedPermissionsServer()
+}
+
+func RegisterPermissionsServer(s grpc.ServiceRegistrar, srv PermissionsServer) {
+	// If the following call pancis, it indicates UnimplementedPermissionsServer was
+	// embedded by pointer and is nil.  This will cause panics if an
+	// unimplemented method is ever invoked, so we test this at initialization
+	// time to prevent it from happening at runtime later due to I/O.
+	if t, ok := srv.(interface{ testEmbeddedByValue() }); ok {
+		t.testEmbeddedByValue()
+	}
+	s.RegisterService(&Permissions_ServiceDesc, srv)
+}
+
+func _Permissions_CheckPermission_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CheckPermissionRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PermissionsServer).CheckPermission(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Permissions_CheckPermission_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PermissionsServer).CheckPermission(ctx, req.(*CheckPermissionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Permissions_AssignPermission_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AssignPermissionRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PermissionsServer).AssignPermission(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Permissions_AssignPermission_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PermissionsServer).AssignPermission(ctx, req.(*AssignPermissionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Permissions_RemovePermission_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RemovePermissionRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PermissionsServer).RemovePermission(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Permissions_RemovePermission_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PermissionsServer).RemovePermission(ctx, req.(*RemovePermissionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+// Permissions_ServiceDesc is the grpc.ServiceDesc for Permissions service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var Permissions_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "auth.Permissions",
+	HandlerType: (*PermissionsServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "CheckPermission",
+			Handler:    _Permissions_CheckPermission_Handler,
+		},
+		{
+			MethodName: "AssignPermission",
+			Handler:    _Permissions_AssignPermission_Handler,
+		},
+		{
+			MethodName: "RemovePermission",
+			Handler:    _Permissions_RemovePermission_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
