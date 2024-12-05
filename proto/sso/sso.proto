@@ -84,5 +84,5 @@ message RemovePermissionResponse {
 message Permission {
   int64 user_id = 1;
   int32 app_id = 2; 
-  int32 permission = 3;
+  int32 access_right = 3;
 }
